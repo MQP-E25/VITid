@@ -28,10 +28,8 @@ def analyze_csv():
 
     # convert data to img
     export_curves_to_images(tmp_csv, tmp_img, image_size)
-    
 
     # Identify species using the vit model    
-
     results = ''
 
     for dir in sorted(os.listdir(tmp_img)):
@@ -53,17 +51,17 @@ def analyze_img():
     img = request.files['img']
     img_path = os.path.join(sourceimg, img.filename)
     img.save(img_path)
-    
+
     results = ''
-    
+
     for img in sorted(os.listdir(sourceimg)):
         print(img)
         results = identify_image(os.path.join(sourceimg, img), model, image_processor, device)
         print(results)
-        
+
     # Clean up the temporary file(s)
     shutil.rmtree('./tmp')
-    
+
     return jsonify(results)
 
 if __name__ == '__main__':
