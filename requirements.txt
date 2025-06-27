@@ -1,0 +1,8 @@
+torch
+pandas
+transformers
+Pillow
+matplotlib
+scikit-learn
+optuna
+flask
