@@ -83,7 +83,6 @@ def export_curves_to_images(data_dir, out_dir, image_size):
     Augmented CSVs are exported as 'AUG#_<speciesname>.png' in the same species folder.
     """
     os.makedirs(out_dir, exist_ok=True)
-    print(f"\nExporting from {data_dir} to {out_dir}")
     csv_files = sorted([f for f in os.listdir(data_dir) if f.endswith('.csv')])
     if not csv_files:
         print(f"No CSV files found in {data_dir}")
@@ -93,7 +92,6 @@ def export_curves_to_images(data_dir, out_dir, image_size):
         # All images (original and augmented) go in the same species folder
         out_label_dir = os.path.join(out_dir, species_name)
         os.makedirs(out_label_dir, exist_ok=True)
-        print(f"Processing {csv_path} -> {out_label_dir}")
         df = pd.read_csv(csv_path)
         # Get curve data from CSV
         if 'value' in df.columns:

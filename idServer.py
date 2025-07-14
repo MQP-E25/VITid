@@ -6,6 +6,11 @@ import torch
 import torchvision
 from transformers import AutoImageProcessor, AutoModelForImageClassification
 from vitHelper import data_to_img, export_curves_to_images, image_size
+import os
+from io import StringIO
+import pandas as pd
+import numpy as np
+
 
 app = Flask(__name__)
 MODEL_PATH = "./MODEL"
@@ -34,9 +39,7 @@ def analyze_csv():
 
     for dir in sorted(os.listdir(tmp_img)):
         for img in os.listdir(os.path.join(tmp_img, dir)):
-            # print(img)
             results = identify_image(os.path.join(tmp_img, dir, img), model, image_processor, device)
-            print(results)
 
     # Clean up the temporary file(s)
     shutil.rmtree('./tmp')
@@ -55,14 +58,96 @@ def analyze_img():
     results = ''
 
     for img in sorted(os.listdir(sourceimg)):
-        print(img)
         results = identify_image(os.path.join(sourceimg, img), model, image_processor, device)
-        print(results)
 
     # Clean up the temporary file(s)
     shutil.rmtree('./tmp')
 
     return jsonify(results)
+
+
+@app.route('/analyzeNotebook', methods=['POST'])
+def analyze_notebook():
+    tmp_csv = './tmp/nb'
+    tmp_processed = './tmp/processed'
+    tmp_img = './tmp/img'
+
+    os.makedirs(tmp_csv, exist_ok=True)
+    os.makedirs(tmp_processed, exist_ok=True)
+    os.makedirs(tmp_img, exist_ok=True)
+
+    csv = request.files['nb']
+    csv_path = os.path.join(tmp_csv, csv.filename)
+    csv.save(csv_path)
+    
+    saved_csvs = open_raw_file_and_save_columns(csv_path, tmp_processed)
+
+    # Convert each sample CSV to image(s) using export_curves_to_images
+    export_curves_to_images(tmp_processed, tmp_img, image_size)
+
+    # Identify each image and collect the most confident species for each sample
+    results = {}
+    for sample_csv in saved_csvs:
+        sample_name = os.path.splitext(os.path.basename(sample_csv))[0]
+        # Find the corresponding image(s) generated for this sample
+        # Assumes export_curves_to_images creates a subdir per sample, or images named after sample
+        found = False
+        for subdir in os.listdir(tmp_img):
+            subdir_path = os.path.join(tmp_img, subdir)
+            if not os.path.isdir(subdir_path):
+                continue
+            for img_file in os.listdir(subdir_path):
+                if sample_name in img_file:
+                    img_path = os.path.join(subdir_path, img_file)
+                    pred = identify_image(img_path, model, image_processor, device)
+                    # If pred is a dict with confidences, pick the most confident species
+                    if isinstance(pred, dict):
+                        # Find the species with the highest confidence
+                        best_species = max(pred.items(), key=lambda x: x[1])[0]
+                        results[sample_name] = best_species
+                    else:
+                        results[sample_name] = pred
+                    found = True
+                    break
+            if found:
+                break
+        if not found:
+            results[sample_name] = None
+
+    # Clean up the temporary file(s)
+    shutil.rmtree('./tmp')
+
+    return jsonify(results)
+
+
+# Process the uploaded file and save each sample column as a separate CSV
+def open_raw_file_and_save_columns(f, out_dir):
+    with open(f, 'r', encoding='utf-8') as file_obj:
+        lines = []
+        found_marker = False
+        for line in file_obj:
+            if found_marker:
+                if "End Worksheet" in line:
+                    break
+                lines.append(line)
+            elif "Start Worksheet - Analysis - Melt DNAID-Elasmo Data" in line:
+                found_marker = True
+        if not lines:
+            return []
+        lines = lines[1:-1]
+        data_str = ''.join(lines)
+        df = pd.read_csv(StringIO(data_str), sep=None, engine='python')
+        saved_files = []
+        for col in df.columns:
+            sample_name = str(col)
+            if  "Temperature" in sample_name: 
+                continue
+            out_path = os.path.join(out_dir, f'{sample_name}.csv')
+            df[[col]].to_csv(out_path, index=False, header=True)
+            saved_files.append(out_path)
+        return saved_files
+        
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=3000)
