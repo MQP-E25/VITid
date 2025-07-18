@@ -50,10 +50,12 @@ def identify_image(image_path, model, image_processor, device):
     # Get softmax confidences
     exp_logits = np.exp(logits - np.max(logits))
     probs = exp_logits / exp_logits.sum()
-    all_confidences = {label_map[i]: float(probs[i]) for i in range(len(probs))}
+    # Get top 5 most confident predictions
+    top_indices = np.argsort(probs)[::-1][:5]
+    top_confidences = {label_map[i]: float(probs[i]) for i in top_indices}
     result = {
         "prediction": pred_label,
         "confidence": float(probs[pred_id]),
-        "all_confidences": all_confidences
+        "top_5": top_confidences
     }
     return result

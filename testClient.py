@@ -1,9 +1,11 @@
 import requests
 
 # URL of the running Flask server
-csvURL = "http://127.0.0.1:3000/analyzeCSV"
-imgURL = "http://127.0.0.1:3000/analyzeIMG"
-nbURL = "http://127.0.0.1:3000/analyzeNotebook"
+# ip = "130.215.43.73"
+ip = "127.0.0.1:3000"
+csvURL = f"http://{ip}/analyzeCSV"
+imgURL = f"http://{ip}/analyzeIMG"
+nbURL = f"http://{ip}/analyzeNotebook"
 
 # Path to the CSV file
 csv_path = "test.csv"  
