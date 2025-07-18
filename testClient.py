@@ -29,7 +29,7 @@ print(response.json())
 
 
 with open(nb_path, "rb") as f:
-    nbFiles = {"nb": f}
+    nbFiles = {"csv": f}
     response = requests.post(nbURL, files=nbFiles)
     
 print("Status code:", response.status_code)

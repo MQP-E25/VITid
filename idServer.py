@@ -3,6 +3,7 @@ import os
 import shutil
 from identify import identify_image
 import torch
+import torchvision
 from transformers import AutoImageProcessor, AutoModelForImageClassification
 from vitHelper import data_to_img, export_curves_to_images, image_size
 import os
