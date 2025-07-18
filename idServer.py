@@ -40,11 +40,15 @@ def analyze_csv():
     export_curves_to_images(tmp_csv, tmp_img, image_size)
 
     # Identify species using the vit model    
-    results = ''
+    results = {}
 
     for dir in sorted(os.listdir(tmp_img)):
-        for img in os.listdir(os.path.join(tmp_img, dir)):
-            results = identify_image(os.path.join(tmp_img, dir, img), model, image_processor, device)
+        dir_path = os.path.join(tmp_img, dir)
+        for img in sorted(os.listdir(dir_path)):
+            img_path = os.path.join(dir_path, img)
+            pred = identify_image(img_path, model, image_processor, device)
+            # If pred is a dict, return all confidences; else wrap in a dict
+            results[img] = pred if isinstance(pred, dict) else {"prediction": pred, "confidence": None}
 
     # Clean up the temporary file(s)
     shutil.rmtree('./tmp')
@@ -60,10 +64,12 @@ def analyze_img():
     img_path = os.path.join(sourceimg, img.filename)
     img.save(img_path)
 
-    results = ''
+    results = {}
 
     for img in sorted(os.listdir(sourceimg)):
-        results = identify_image(os.path.join(sourceimg, img), model, image_processor, device)
+        img_path = os.path.join(sourceimg, img)
+        pred = identify_image(img_path, model, image_processor, device)
+        results[img] = pred if isinstance(pred, dict) else {"prediction": pred, "confidence": None}
 
     # Clean up the temporary file(s)
     shutil.rmtree('./tmp')
@@ -90,12 +96,10 @@ def analyze_notebook():
     # Convert each sample CSV to image(s) using export_curves_to_images
     export_curves_to_images(tmp_processed, tmp_img, image_size)
 
-    # Identify each image and collect the most confident species for each sample
+    # Identify each image and collect all confidence levels for each sample
     results = {}
     for sample_csv in saved_csvs:
         sample_name = os.path.splitext(os.path.basename(sample_csv))[0]
-        # Find the corresponding image(s) generated for this sample
-        # Assumes export_curves_to_images creates a subdir per sample, or images named after sample
         found = False
         for subdir in os.listdir(tmp_img):
             subdir_path = os.path.join(tmp_img, subdir)
@@ -105,13 +109,8 @@ def analyze_notebook():
                 if sample_name in img_file:
                     img_path = os.path.join(subdir_path, img_file)
                     pred = identify_image(img_path, model, image_processor, device)
-                    # If pred is a dict with confidences, pick the most confident species
-                    if isinstance(pred, dict):
-                        # Find the species with the highest confidence
-                        best_species = max(pred.items(), key=lambda x: x[1])[0]
-                        results[sample_name] = best_species
-                    else:
-                        results[sample_name] = pred
+                    # Always return the full confidence dict if available
+                    results[sample_name] = pred if isinstance(pred, dict) else {"prediction": pred, "confidence": None}
                     found = True
                     break
             if found:

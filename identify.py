@@ -35,16 +35,25 @@ def identify_image(image_path, model, image_processor, device):
     with torch.no_grad():
         outputs = model(pixel_values=pixel_values)
         logits = outputs.logits.cpu().numpy()[0]
-    pred_id = np.argmax(logits)
+    pred_id = int(np.argmax(logits))
     id2label = model.config.id2label
-    # Robustly handle both int and str keys
+    # Build label mapping
+    label_map = {}
     if isinstance(id2label, dict):
-        if pred_id in id2label:
-            pred_label = id2label[pred_id]
-        elif str(pred_id) in id2label:
-            pred_label = id2label[str(pred_id)]
-        else:
-            raise KeyError(f"Predicted class {pred_id} not found in id2label mapping: {id2label}")
+        for k, v in id2label.items():
+            label_map[int(k) if str(k).isdigit() else k] = v
     else:
-        pred_label = id2label[pred_id]
-    return pred_label
+        for i, v in enumerate(id2label):
+            label_map[i] = v
+    # Get predicted label
+    pred_label = label_map[pred_id]
+    # Get softmax confidences
+    exp_logits = np.exp(logits - np.max(logits))
+    probs = exp_logits / exp_logits.sum()
+    all_confidences = {label_map[i]: float(probs[i]) for i in range(len(probs))}
+    result = {
+        "prediction": pred_label,
+        "confidence": float(probs[pred_id]),
+        "all_confidences": all_confidences
+    }
+    return result
