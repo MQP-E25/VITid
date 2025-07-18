@@ -3,7 +3,6 @@ import os
 import shutil
 from identify import identify_image
 import torch
-import torchvision
 from transformers import AutoImageProcessor, AutoModelForImageClassification
 from vitHelper import data_to_img, export_curves_to_images, image_size
 import os
@@ -13,6 +12,11 @@ import numpy as np
 
 
 app = Flask(__name__)
+
+from werkzeug.middleware.proxy_fix import ProxyFix
+app.wsgi_app = ProxyFix(
+    app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1
+)
 MODEL_PATH = "./MODEL"
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -147,7 +151,6 @@ def open_raw_file_and_save_columns(f, out_dir):
             saved_files.append(out_path)
         return saved_files
         
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=3000)

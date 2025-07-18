@@ -7,3 +7,6 @@ matplotlib
 scikit-learn
 optuna
 flask
+
+gunicorn
+gevent
