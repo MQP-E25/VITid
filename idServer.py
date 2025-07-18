@@ -80,7 +80,7 @@ def analyze_notebook():
     os.makedirs(tmp_processed, exist_ok=True)
     os.makedirs(tmp_img, exist_ok=True)
 
-    csv = request.files['nb']
+    csv = request.files['csv']
     csv_path = os.path.join(tmp_csv, csv.filename)
     csv.save(csv_path)
     
