@@ -48,12 +48,19 @@ def analyze_csv():
             img_path = os.path.join(dir_path, img)
             pred = identify_image(img_path, model, image_processor, device)
             # If pred is a dict, return all confidences; else wrap in a dict
-            results[img] = pred if isinstance(pred, dict) else {"prediction": pred, "confidence": None}
+            # Prevent 'Unnamed' results from being passed back
+            if isinstance(pred, dict) and ('Unnamed' in pred or 'unnamed' in pred):
+                continue
+            if isinstance(pred, str) and pred.lower() == 'unnamed':
+                continue
+            results[img] = pred
 
     # Clean up the temporary file(s)
     shutil.rmtree('./tmp')
 
-    return jsonify(results)
+    # Remove 'Unnamed' keys from results before returning
+    filtered_results = {k: v for k, v in results.items() if not (str(k).lower().startswith('unnamed'))}
+    return jsonify(filtered_results)
 
 @app.route('/analyzeIMG', methods=['POST'])
 def analyze_img():
@@ -69,12 +76,14 @@ def analyze_img():
     for img in sorted(os.listdir(sourceimg)):
         img_path = os.path.join(sourceimg, img)
         pred = identify_image(img_path, model, image_processor, device)
-        results[img] = pred if isinstance(pred, dict) else {"prediction": pred, "confidence": None}
+        results[img] = pred
 
     # Clean up the temporary file(s)
     shutil.rmtree('./tmp')
 
-    return jsonify(results)
+    # Remove 'Unnamed' keys from results before returning
+    filtered_results = {k: v for k, v in results.items() if not (str(k).lower().startswith('unnamed'))}
+    return jsonify(filtered_results)
 
 
 @app.route('/analyzeNotebook', methods=['POST'])
@@ -109,8 +118,12 @@ def analyze_notebook():
                 if sample_name in img_file:
                     img_path = os.path.join(subdir_path, img_file)
                     pred = identify_image(img_path, model, image_processor, device)
-                    # Always return the full confidence dict if available
-                    results[sample_name] = pred if isinstance(pred, dict) else {"prediction": pred, "confidence": None}
+                    # Prevent 'Unnamed' results from being passed back
+                    if isinstance(pred, dict) and ('Unnamed' in pred or 'unnamed' in pred):
+                        continue
+                    if isinstance(pred, str) and pred.lower() == 'unnamed':
+                        continue
+                    results[sample_name] = pred
                     found = True
                     break
             if found:
@@ -121,7 +134,9 @@ def analyze_notebook():
     # Clean up the temporary file(s)
     shutil.rmtree('./tmp')
 
-    return jsonify(results)
+    # Remove 'Unnamed' keys from results before returning
+    filtered_results = {k: v for k, v in results.items() if not (str(k).lower().startswith('unnamed'))}
+    return jsonify(filtered_results)
 
 
 # Process the uploaded file and save each sample column as a separate CSV
