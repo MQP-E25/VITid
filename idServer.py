@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import os
 import shutil
 from identify import identify_image
@@ -11,8 +12,8 @@ from io import StringIO
 import pandas as pd
 import numpy as np
 
-
 app = Flask(__name__)
+CORS(app)
 
 from werkzeug.middleware.proxy_fix import ProxyFix
 app.wsgi_app = ProxyFix(

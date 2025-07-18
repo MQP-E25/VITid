@@ -8,6 +8,6 @@ matplotlib
 scikit-learn
 optuna
 flask
-
+flask-cors
 gunicorn
 gevent
